@@ -1,0 +1,469 @@
+// PRD — LUSL Notepad Current Platform (Live)
+// Limkokwing University Sierra Leone — Student Learning Platform
+
+export const CURRENT_PRD_CONTENT = `
+# Product Requirements Document (PRD)
+## LUSL Notepad — Limkokwing University Sierra Leone Student Learning Platform
+Version: 1.0 | Date: March 2026 | Status: Live / In Production
+
+---
+
+## 1. Executive Summary
+
+LUSL Notepad is the official digital learning platform for Limkokwing University Sierra Leone (LUSL).
+It provides students with a centralized hub to access course materials, use an AI Study Assistant,
+track their academic progress, and collaborate with peers — all within a secure, role-based
+dark-themed web application.
+
+The platform currently serves three types of users: Students, Lecturers, and Administrators,
+each with a dedicated dashboard and controlled access to features.
+
+---
+
+## 2. Problem Statement
+
+Before LUSL Notepad:
+1. Students had no single place to access all course materials across faculties and semesters.
+2. AI learning tools (like ChatGPT) were expensive or inaccessible for most students.
+3. Lecturers had no structured way to share materials digitally with students.
+4. Administrators had no visibility into how content was being used or who was accessing what.
+
+---
+
+## 3. Current Users
+
+### 3.1 Students
+- Self-register using their university Student ID (must start with 90500, minimum 9 digits)
+- Select Faculty, Semester, and Program during registration
+- Browse and download course materials filtered to their faculty/semester
+- Use the AI Study Assistant with 10 learning tools
+- Manage personal tasks, schedule, and assignments
+- Purchase AI tokens via mobile money (Orange Money / Afrimoney)
+- Refer friends for bonus tokens
+- View their learning progress and quiz scores
+
+### 3.2 Lecturers
+- Register using a valid Lecturer Access Code issued by the administrator
+- Upload course materials (PDF, PPTX, DOCX, Images)
+- Manage uploaded content (activate, archive, delete)
+- View analytics: how many views/downloads their content received
+- Send messages to students via in-app messaging
+- View their own dashboard with content performance stats
+
+### 3.3 Administrators
+- Register using a secure Admin Access Code
+- Access a full Admin Dashboard with platform-wide analytics
+- Manage all users (view, change roles, deactivate)
+- View system-level statistics: total users, content, AI interactions
+- Send bulk messages to users
+- Oversee token transactions and referral activity
+
+---
+
+## 4. User Onboarding Flow
+
+### 4.1 New User Registration (All Roles)
+1. User visits the platform and is redirected to the UserSetup page
+2. Enters their full name
+3. Selects their role: Student / Lecturer / Admin
+4. Based on role:
+   - STUDENT: Enters Student ID (validated: must start with 90500, min 9 chars)
+              → System auto-fills Faculty and Semester from ID validation
+              → User confirms program, faculty, semester
+   - LECTURER: Enters Lecturer Access Code (validated server-side)
+               → System auto-fills their name and faculty from DB record
+   - ADMIN: Enters Admin Access Code (validated server-side)
+5. User accepts Terms of Service modal before accessing the app
+6. User is redirected to their role-specific dashboard
+
+---
+
+## 5. Feature Inventory (Currently Live)
+
+### 5.1 Authentication & Access Control
+- Login via Base44 Auth (email-based)
+- Role-based routing: student → StudentDashboard, lecturer → LecturerDashboard, admin → AdminDashboard
+- Session persistence — users stay logged in across browser sessions
+- Logout with redirect to setup page
+- Terms of Service acceptance (stored on user record)
+- Student ID validation via backend function (validateStudent)
+- Lecturer code validation via backend function (validateLecturerCode)
+- Admin code validation via backend function (validateAdminCode)
+
+### 5.2 Student Dashboard
+Dashboard sections:
+- Welcome banner with time-based greeting and student info
+- Task Manager:
+  - Add personal tasks with deadlines, priority (High/Medium/Low), tags
+  - Real-time countdown timers on tasks with upcoming deadlines
+  - Mark tasks complete, edit, delete
+  - Filter by status and priority
+  - Collaboration: invite other students to tasks via email
+  - Deadline alert toasts when tasks are due soon
+- Schedule Manager:
+  - Add weekly schedule entries (day, time, subject, location, type)
+  - Visual calendar with today highlighted
+  - Mini calendar date picker
+- In-App Messaging:
+  - Send messages to other users (students or lecturers) by email
+  - View inbox / sent messages
+  - Mark messages as read
+  - Reply functionality
+- Timetable: View uploaded timetable content from lecturers
+- Global Search: Search across pages, tasks, notes, and schedule entries
+- AI Collaboration Panel: AI-powered suggestions for study groups and discussion topics
+
+### 5.3 Content Browse (Student)
+- Browse course materials filtered by the student's faculty, semester, and program
+- Security: Server-side AND client-side double-filtering by faculty + semester (no cross-faculty leakage)
+- Search materials by title or module name
+- Filter by: Module, Lecturer, Content Type (lecture notes, assignment, tutorial, etc.)
+- Sort by: Newest, Most Viewed, Most Downloaded
+- Open files directly (PDFs in new tab, Google Slides viewer for PPTX, downloadable for all types)
+- Track view and download events to ContentAccess entity
+- Increment view_count and download_count on Content entity
+- Pagination: Load more button (30 items per page)
+- File type badges with colour coding (PDF, PPTX, DOCX, Image)
+- Lecturer name, module code, semester displayed per content card
+
+### 5.4 AI Study Assistant
+Core chat features:
+- Real-time AI chat backed by OpenAI via Base44 Core InvokeLLM
+- Sources system: student selects which course materials to chat about
+- Sources Drawer: browse, search, and select materials (with select-all, load more, add personal files)
+- Personal file upload: students can upload their own notes (PDF, PPTX, DOCX, images) to use as AI sources
+- Filter sources by module and file type
+- Chat history panel (desktop): browse and reload past AI conversations
+- New Chat button: start a fresh conversation anytime
+- Messages persist in sessionStorage during navigation
+
+AI Learning Tools (accessed via Learning Studio drawer):
+1. Study Guide — comprehensive topic guide with key concepts and examples
+2. Practice Quiz (MCQ) — 10 multiple choice questions with explanations
+3. Fill in the Blanks — 10 exercises with answers
+4. Matching Quiz — column A/B matching exercise with answer key
+5. True/False Quiz — 12 true/false questions with explanations
+6. Concept Explainer — structured 6-part explanation of a concept
+7. Study Plan — 2-3 week personalised study plan
+8. Audio Overview — AI podcast script generation + ElevenLabs TTS audio
+9. Exam Prep — exam-style questions, study tips, priority topics
+10. Note Summary — structured bullet-point notes with bold key terms
+
+Learning level selector:
+- Beginner: simple language, analogies, all terms explained
+- Intermediate: balanced technical accuracy with clarity
+- Advanced: deep technical detail, precise terminology
+
+Chat configuration:
+- Conversational style: Default / Learning Guide / Custom
+- Response length: Default / Shorter / Longer
+- Custom instructions field for personalised AI behaviour
+
+Rate limiting & tokens:
+- Free tier: 20 queries/day, then 7-hour suspension
+- Paid tier: 1 AI query = 1 token (deducted via backend function)
+- Token balance shown in chat header with link to purchase more
+- Rate limit status shown: remaining free queries + reset timer
+
+AI interaction storage:
+- Every query/response pair saved to AIInteraction entity
+- Source file IDs stored per interaction
+- Student can rate AI responses (1-5 stars)
+- History panel groups interactions by date with type icons and labels
+- Students can delete history items
+
+Podcast / Audio Overview:
+- Select Single Narrator or Conversational (two-host dialogue) style
+- Choose from 4 ElevenLabs voices (George, Bella, Daniel, Dorothy)
+- AI generates a 3-4 minute podcast script from selected materials
+- ElevenLabs API converts script to MP3 audio
+- In-app audio player (play/pause)
+- Download MP3 button
+
+### 5.5 Lecturer Dashboard
+- Upload summary: total content, total views, total downloads, recent uploads
+- Recent content list with per-item view/download stats
+- Quick actions: Upload Content, Manage Content, View Analytics, Send Message
+- List of active vs draft vs archived content
+
+### 5.6 Content Upload (Lecturer)
+Form fields:
+- Title *
+- Module / Course Name *
+- Module Code
+- Faculty * (select from FICT, FCMB, FBMG, FABE, FDI, FCTH)
+- Semester * (1-8)
+- Program * (BIT, BBIT, BPC, BCS, etc. — dynamic per faculty)
+- Content Type (Lecture Notes, Assignment, Timetable, Tutorial, Project, Lab, Other)
+- Description
+- Tutorial Link (optional external URL, e.g. YouTube, Google Drive)
+- File Upload (PDF, PPTX, DOCX, Image — validated, stored via Base44 UploadFile)
+File validation: type checking, size feedback
+Submission: creates Content entity, redirects to Content Management
+
+### 5.7 Content Management (Lecturer)
+- View all their uploaded content
+- Status filter: Active / Draft / Archived
+- Search by title
+- Edit content metadata (title, module, description, tutorial link)
+- Change content status: activate, archive, delete
+- Version tracking on edits
+
+### 5.8 Analytics (Lecturer)
+- Total views, downloads, and materials uploaded
+- Most-viewed content list
+- Recent downloads list
+- Content performance table with view/download stats per item
+- Charts: content type breakdown, engagement over time
+
+### 5.9 Admin Dashboard
+- Platform-wide stats: total users (students/lecturers/admins), content count, AI interactions
+- Recent user registrations
+- Recent AI interactions
+- System health overview
+- Quick links: User Management, Analytics, Settings, Bulk Message
+
+### 5.10 User Management (Admin)
+- View all registered users with role, faculty, email, registration date
+- Search users by name or email
+- Filter by role (student / lecturer / admin)
+- Change user role
+- Send message to specific user
+- View user profile details
+
+### 5.11 Purchase Tokens (Student)
+- View current token balance (available, used, total)
+- Toggle between SLE (Sierra Leonean Leone) and USD pricing
+- Token packages: 10, 25, 50, 100 tokens (with popular badge on 50)
+- Purchase flow:
+  1. Select package → enter phone number → submit
+  2. Backend creates Monime payment order
+  3. Student receives USSD prompt on phone (Orange Money / Afrimoney)
+  4. On payment confirmation: backend webhook credits tokens
+- Order number displayed for tracking
+
+### 5.12 Referral Program
+- Each user has a unique referral code (based on user ID)
+- Share referral link via WhatsApp, SMS, or copy to clipboard
+- Referred user registers → both users earn bonus tokens
+- Referral history: list of referred users with status and tokens earned
+- Referral balance shown
+
+### 5.13 My Progress
+- Quiz score history with colour-coded badges (green ≥70%, yellow ≥50%, red <50%)
+- Average score calculation
+- Learning goals list: create, track, and update personal academic goals
+- Goal status: Active / Completed / Paused
+- Progress bar per goal
+
+### 5.14 Settings
+- Profile photo: generate avatar (AI-based) or upload custom image
+- Full name display
+- Academic info: Faculty, Semester, Program (for students)
+- Notification preferences
+- Account info: email, role, member since
+
+### 5.15 Messaging
+- In-app messaging system
+- Compose: recipient email, subject, message body
+- Inbox view with unread indicators
+- Sent messages view
+- Mark as read
+- Email-based notifications on new messages
+
+---
+
+## 6. Data Model (Current Entities)
+
+| Entity          | Description                                                    |
+|-----------------|----------------------------------------------------------------|
+| User            | All platform users. Fields: full_name, email, role, user_type, faculty, semester, program, student_id, avatar_url, terms_accepted, referral_code, free_queries_suspended_until |
+| Content         | Course materials. Fields: title, description, file_url, file_type, faculty, semester, program, module, module_code, content_type, lecturer_name, view_count, download_count, is_active, status |
+| ContentAccess   | Logs every view/download event per user per content item       |
+| AIInteraction   | Stores every AI query + response. Fields: user_id, query, response, source_content_ids, query_type, satisfaction_rating, response_time |
+| Message         | In-app messages between users                                  |
+| TaskInvitation  | Collaboration invites for student tasks                        |
+| TokenBalance    | Per-user token counts: available, used, total, bonus           |
+| TokenTransaction| Every token purchase/usage event with payment metadata         |
+| Referral        | Referral relationships and token award records                 |
+| QuizScore       | Records of quiz results per student per module                 |
+| LearningGoal    | Student-defined academic goals with status and progress        |
+| ContentRating   | Student star ratings + feedback on content items               |
+
+---
+
+## 7. Backend Functions (Currently Live)
+
+| Function              | Purpose                                                  |
+|-----------------------|----------------------------------------------------------|
+| validateStudent       | Validates student ID format and returns academic data    |
+| validateLecturerCode  | Validates lecturer access code and returns lecturer info |
+| validateAdminCode     | Validates admin access code                              |
+| queryAI               | AI query processing helper                               |
+| queryGemini           | Gemini-specific AI query handler                         |
+| getLecturerAnalytics  | Aggregates view/download stats for a lecturer            |
+| getSystemUsers        | Returns paginated user list for admin                    |
+| createTokenPurchase   | Creates Monime payment order for token purchase          |
+| monimeWebhook         | Receives Monime payment confirmation, credits tokens     |
+| getTokenBalance       | Returns current token balance for user                   |
+| deductTokens          | Deducts 1 token from user balance on AI query            |
+| processReferral       | Awards tokens to referrer and referee                    |
+| sendBulkMessage       | Admin: sends message to all or filtered users            |
+
+---
+
+## 8. Integrations (Currently Active)
+
+| Integration         | Purpose                                         |
+|---------------------|-------------------------------------------------|
+| Base44 Auth         | User authentication, session management         |
+| Base44 Entities     | Database ORM (all entity reads/writes)          |
+| Base44 Core LLM     | AI query processing (OpenAI backend)            |
+| Base44 UploadFile   | File uploads for content and avatars            |
+| ElevenLabs TTS      | Text-to-speech for podcast/audio overview       |
+| Monime              | Mobile money payments (Orange Money, Afrimoney) |
+| Base44 Email        | In-app messaging email notifications            |
+| Base44 WhatsApp     | AI Study Assistant via WhatsApp agent           |
+| TanStack Query      | Client-side data caching and refetching         |
+
+---
+
+## 9. Faculties & Programs (Currently Hardcoded)
+
+Faculty: FICT (Faculty of ICT)
+  Programs: BIT, BBIT, BPC, BCS, MIT, DIT
+
+Faculty: FCMB (Faculty of Communication & Media)
+  Programs: BMC, BMMC, BPR, BJOUR, BFA, MCC
+
+Faculty: FBMG (Faculty of Business Management)
+  Programs: BBA, BBF, BHM, BHRM, MBA, BBAF
+
+Faculty: FABE (Faculty of Architecture & Built Environment)
+  Programs: BARCH, BCIVL, BINT, BQSUR, MURP
+
+Faculty: FDI (Faculty of Design & Innovation)
+  Programs: BGRD, BFASH, BINT, BPROD, BPHOT
+
+Faculty: FCTH (Faculty of Culture, Tourism & Hospitality)
+  Programs: BTOUR, BHGT, BEVT, BHRM, BFNB
+
+Semesters: 1 through 8
+
+Student ID Rules: Must start with "90500", minimum length 9 characters
+
+---
+
+## 10. Security & Access Control
+
+- Role-based routing: users are redirected to the correct dashboard on login
+- Content security: all content queries are filtered by faculty + semester (server AND client)
+- Students cannot see content from other faculties or semesters
+- AI interaction data is scoped by user_id (students only see their own history)
+- ContentAccess records are scoped by user_id
+- Admin-only backend functions validate the caller's role before executing
+- Terms of Service must be accepted before accessing any dashboard feature
+- Free query suspension stored on user record (server-authoritative)
+
+---
+
+## 11. Non-Functional Requirements (Current State)
+
+| Requirement      | Current Status                         |
+|------------------|----------------------------------------|
+| Mobile Support   | Fully responsive, iOS/Android browsers |
+| Theme            | Dark mode throughout (black base)      |
+| Performance      | TanStack Query caching, lazy loading   |
+| File Types       | PDF, PPTX, DOCX, JPEG, PNG            |
+| Max File Size    | 50MB per upload                        |
+| AI Response Time | < 10 seconds (depends on file count)  |
+| Offline Mode     | Not supported (online-only)            |
+| Language         | English only                           |
+
+---
+
+## 12. Known Limitations & Issues
+
+1. Student ID prefix (90500) is hardcoded — not configurable per institution
+2. Faculty/Program list is hardcoded in multiple files — not database-driven
+3. Lecturer access codes are static strings in backend functions — no rotation UI
+4. No push notifications — students must check the app for new content
+5. No discussion/forum feature — students cannot ask questions publicly
+6. PDF viewer relies on browser's built-in viewer — no in-app annotation
+7. ElevenLabs podcast only generates single-voice audio (two-voice not yet implemented)
+8. No offline mode — requires active internet connection
+9. Token purchases are manual (USSD-based) — no auto-confirmation webhook UI
+10. No grade tracker — students record quiz scores but not official marks
+
+---
+
+## 13. Roadmap (Planned Improvements)
+
+SHORT TERM (Next 1-2 months):
+- Make faculty/program structure database-driven (Admin configurable)
+- Add push notifications for new content uploads
+- In-app PDF annotation / highlighting
+- Student ID validation UI improvements
+
+MEDIUM TERM (Q3 2026):
+- Discussion forums per module
+- Grade tracker (official marks per subject)
+- Live class links (Zoom/Teams embedding)
+- Plagiarism detection for AI-assisted submissions
+
+LONG TERM — Multi-University Expansion (Q4 2026):
+- Multi-tenant architecture (see UniNotepad PRD)
+- University self-registration portal
+- Configurable branding per institution
+- International payment gateways (Stripe, Flutterwave)
+
+---
+
+## 14. Success Metrics (Current Platform)
+
+| Metric                        | Target         |
+|-------------------------------|----------------|
+| Active students per month     | 500+           |
+| Content items uploaded        | 200+           |
+| AI queries per student/month  | 15+            |
+| Average session duration      | 10+ minutes    |
+| Token purchase conversion     | 15% of users   |
+| Content average rating        | 4.0+ stars     |
+| Daily active users            | 100+           |
+`;
+
+export default function CurrentPlatformPRD() {
+  const handleDownload = () => {
+    const blob = new Blob([CURRENT_PRD_CONTENT], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'PRD_LUSL_Notepad_Current_Platform.md';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="min-h-screen bg-black p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-white">PRD — Current Platform</h1>
+              <p className="text-sm text-gray-400 mt-1">LUSL Notepad · Live Production · March 2026</p>
+            </div>
+            <button
+              onClick={handleDownload}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"
+            >
+              Download .md
+            </button>
+          </div>
+          <pre className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap overflow-auto max-h-[70vh]">
+            {CURRENT_PRD_CONTENT}
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+}
