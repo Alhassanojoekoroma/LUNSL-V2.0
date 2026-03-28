@@ -8,7 +8,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 // ============================================================
@@ -107,7 +106,8 @@ model User {
   progress             ProgressRecord[]
   badges               UserBadge[]
   certificates         Certificate[]
-  messages             Message[]
+  sentMessages         Message[]     @relation("sent_messages")
+  receivedMessages     Message[]     @relation("received_messages")
   notifications        Notification[]
   chatHistory          ChatHistory[]
   studyGroupMembers    StudyGroupMember[]
@@ -206,7 +206,7 @@ model Quiz {
   totalQuestions       Int       @default(0)
   passingScore         Int       @default(70)
   timeLimit            Int?      // minutes
-  attempts             Int       @default(3)
+  maxAttempts          Int       @default(3)
   showAnswers          Boolean   @default(true)
   randomizeQuestions   Boolean   @default(false)
   randomizeAnswers     Boolean   @default(false)
@@ -216,7 +216,7 @@ model Quiz {
 
   content              Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
   questions            QuizQuestion[]
-  attempts             QuizAttempt[]
+  quizAttempts         QuizAttempt[]
   
   @@map("quizzes")
 }
@@ -291,7 +291,7 @@ model CourseEnrollment {
   enrollmentDate        DateTime  @default(now())
   completionDate        DateTime?
   status                EnrollmentStatus @default(ACTIVE)
-  progress              Int       @default(0)  // percentage
+  progressPercentage    Int       @default(0)  // percentage
   totalHoursSpent       Float     @default(0)
   
   createdAt             DateTime  @default(now())
@@ -299,7 +299,7 @@ model CourseEnrollment {
 
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   course                Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  progress              ProgressRecord[]
+  progressRecords       ProgressRecord[]
   
   @@unique([userId, courseId])
   @@index([userId])

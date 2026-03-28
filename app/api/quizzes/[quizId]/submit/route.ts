@@ -60,7 +60,7 @@ export async function POST(
       },
     });
 
-    if (attemptCount >= quiz.attempts) {
+    if (attemptCount >= quiz.maxAttempts) {
       return NextResponse.json(
         { error: "Maximum attempts exceeded" },
         { status: 403 }
