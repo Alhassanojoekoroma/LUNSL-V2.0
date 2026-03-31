@@ -7,7 +7,45 @@ import { prisma } from "@/lib/prisma";
 // Get user's course enrollments
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    let session = await getServerSession(authOptions);
+    
+    // Development mode: fallback to demo data if no session
+    if (!session?.user?.email && process.env.NODE_ENV === 'development') {
+      console.log('[Enrollments] Development mode: Returning mock enrollments');
+      return NextResponse.json({
+        data: [
+          {
+            id: 'enroll-1',
+            user_id: 'dev-user-123',
+            course_id: 'course-1',
+            enrolled_at: new Date().toISOString(),
+            progress_percentage: 45,
+            status: 'ACTIVE',
+            course: {
+              id: 'course-1',
+              title: 'Introduction to Web Development',
+              description: 'Learn the fundamentals of web development',
+              progress_percentage: 45,
+            },
+          },
+          {
+            id: 'enroll-2',
+            user_id: 'dev-user-123',
+            course_id: 'course-2',
+            enrolled_at: new Date().toISOString(),
+            progress_percentage: 70,
+            status: 'ACTIVE',
+            course: {
+              id: 'course-2',
+              title: 'Advanced JavaScript',
+              description: 'Master advanced JavaScript concepts',
+              progress_percentage: 70,
+            },
+          },
+        ],
+      });
+    }
+
     if (!session?.user?.email) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -30,12 +68,12 @@ export async function GET(req: NextRequest) {
       where: { userId: user.id },
       include: {
         course: true,
-        progress: true,
+        progressRecords: true,
       },
       orderBy: { enrollmentDate: "desc" },
     });
 
-    return NextResponse.json(enrollments);
+    return NextResponse.json({ data: enrollments });
   } catch (error) {
     console.error("Get enrollments error:", error);
     return NextResponse.json(

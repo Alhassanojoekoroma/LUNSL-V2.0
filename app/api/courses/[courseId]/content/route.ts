@@ -56,7 +56,7 @@ export async function POST(
     }
 
     if (
-      course.lecturerId !== user.id &&
+      course.instructor !== user.id &&
       session.user.role !== 'ADMIN'
     ) {
       return NextResponse.json(
@@ -65,23 +65,24 @@ export async function POST(
       );
     }
 
-    // Get the highest sequence number for this course
+    // Get the highest order number for this course
     const lastContent = await prisma.content.findFirst({
       where: { courseId: params.courseId },
-      orderBy: { sequenceNumber: 'desc' },
+      orderBy: { order: 'desc' },
     });
 
-    const nextSequence = sequenceNumber || (lastContent?.sequenceNumber || 0) + 1;
+    const nextOrder = sequenceNumber || (lastContent?.order || 0) + 1;
 
     const content = await prisma.content.create({
       data: {
         title,
         description: description || '',
         type: type as any,
-        contentUrl,
+        fileUrl: contentUrl,
         duration: duration || 0,
         courseId: params.courseId,
-        sequenceNumber: nextSequence,
+        createdById: user.id,
+        order: nextOrder,
       },
     });
 
@@ -102,7 +103,7 @@ export async function GET(
   try {
     const content = await prisma.content.findMany({
       where: { courseId: params.courseId },
-      orderBy: { sequenceNumber: 'asc' },
+      orderBy: { order: 'asc' },
     });
 
     return NextResponse.json(content);

@@ -45,24 +45,29 @@ export class OpenAIService {
         ]
       : messages;
 
-    const response = await this.client.chat.completions.create({
-      model: this.model,
-      messages: formattedMessages,
-      temperature: 0.7,
-      max_tokens: 2000,
-    });
+    try {
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        messages: formattedMessages,
+        temperature: 0.7,
+        max_tokens: 2000,
+      });
 
-    const content = response.choices[0]?.message?.content || "";
+      const content = response.choices[0]?.message?.content || "";
 
-    return {
-      content,
-      tokens: {
-        prompt: response.usage?.prompt_tokens || 0,
-        completion: response.usage?.completion_tokens || 0,
-        total: response.usage?.total_tokens || 0,
-      },
-      provider: "openai",
-    };
+      return {
+        content,
+        tokens: {
+          prompt: response.usage?.prompt_tokens || 0,
+          completion: response.usage?.completion_tokens || 0,
+          total: response.usage?.total_tokens || 0,
+        },
+        provider: "openai",
+      };
+    } catch (error) {
+      console.error("OpenAI API error:", error);
+      throw new Error(`OpenAI chat failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
   }
 
   async generateImage(prompt: string): Promise<string> {
@@ -73,7 +78,7 @@ export class OpenAIService {
       size: "1024x1024",
     });
 
-    return response.data[0]?.url || "";
+    return response.data?.[0]?.url || "";
   }
 }
 
@@ -101,34 +106,40 @@ export class GeminiService {
       systemInstruction: systemPrompt,
     });
 
-    // Convert messages to Gemini format
-    const history = messages.slice(0, -1).map((msg) => ({
-      role: msg.role === "user" ? "user" : "model",
-      parts: [{ text: msg.content }],
-    }));
+    try {
+      // Convert messages to Gemini format
+      const history = messages.slice(0, -1).map((msg) => ({
+        role: msg.role === "user" ? "user" : "model",
+        parts: [{ text: msg.content }],
+      }));
 
-    const userMessage = messages[messages.length - 1]?.content || "";
+      const userMessage = messages[messages.length - 1]?.content || "";
 
-    const chat = model.startChat({
-      history,
-    });
+      const chat = model.startChat({
+        history,
+      });
 
-    const result = await chat.sendMessage(userMessage);
-    const content = result.response.text();
+      const result = await chat.sendMessage(userMessage);
+      const content = result.response.text();
 
-    // Note: Gemini doesn't return detailed token counts in the same way
-    // You might need to estimate based on character count
-    const estimatedTokens = Math.ceil(content.length / 4);
+      // Note: Gemini doesn't provide detailed token counts
+      // Estimate based on word count (roughly 1 token per 3 characters for English)
+      const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0) + content.length;
+      const estimatedTokens = Math.ceil(totalChars / 3);
 
-    return {
-      content,
-      tokens: {
-        prompt: 0, // Not provided by Gemini
-        completion: estimatedTokens,
-        total: estimatedTokens,
-      },
-      provider: "gemini",
-    };
+      return {
+        content,
+        tokens: {
+          prompt: Math.ceil(messages.reduce((sum, msg) => sum + msg.content.length, 0) / 3),
+          completion: Math.ceil(content.length / 3),
+          total: estimatedTokens,
+        },
+        provider: "gemini",
+      };
+    } catch (error) {
+      console.error("Gemini API error:", error);
+      throw new Error(`Gemini chat failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
   }
 }
 
@@ -149,26 +160,31 @@ export class ClaudeService {
     messages: AIMessage[],
     systemPrompt?: string
   ): Promise<AIResponse> {
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: 2000,
-      system: systemPrompt,
-      messages: messages,
-    });
+    try {
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: messages,
+      });
 
-    const content =
-      response.content[0]?.type === "text" ? response.content[0].text : "";
+      const content =
+        response.content[0]?.type === "text" ? response.content[0].text : "";
 
-    return {
-      content,
-      tokens: {
-        prompt: response.usage?.input_tokens || 0,
-        completion: response.usage?.output_tokens || 0,
-        total: (response.usage?.input_tokens || 0) +
-          (response.usage?.output_tokens || 0),
-      },
-      provider: "claude",
-    };
+      return {
+        content,
+        tokens: {
+          prompt: response.usage?.input_tokens || 0,
+          completion: response.usage?.output_tokens || 0,
+          total: (response.usage?.input_tokens || 0) +
+            (response.usage?.output_tokens || 0),
+        },
+        provider: "claude",
+      };
+    } catch (error) {
+      console.error("Claude API error:", error);
+      throw new Error(`Claude chat failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
   }
 }
 

@@ -97,23 +97,28 @@ export const initializeSocket = (httpServer: HTTPServer): SocketIOServer => {
     // Notification events
     socket.on('send_notification', async (data: {
       userId: string;
+      title: string;
       message: string;
       type: string;
-      relatedId?: string;
+      link?: string;
+      additionalData?: Record<string, any>;
     }) => {
       try {
         const notification = await prisma.notification.create({
           data: {
             userId: data.userId,
+            title: data.title || 'Notification',
             message: data.message,
             type: data.type as any,
-            relatedId: data.relatedId,
+            link: data.link,
+            data: data.additionalData || {},
           },
         });
 
         io?.to(`user:${data.userId}`).emit('notification_received', notification);
       } catch (error) {
         console.error('[Socket.io] Notification error:', error);
+        socket.emit('notification_error', { error: 'Failed to send notification' });
       }
     });
 
@@ -176,10 +181,20 @@ export const emitToRoom = (room: string, event: string, data: any) => {
 
 export const broadcastNotification = async (notification: {
   userId: string;
+  title: string;
   message: string;
   type: string;
-  relatedId?: string;
+  link?: string;
+  additionalData?: Record<string, any>;
 }) => {
   if (!io) return;
-  io.to(`user:${notification.userId}`).emit('notification_received', notification);
+  const notificationData = {
+    userId: notification.userId,
+    title: notification.title || 'Notification',
+    message: notification.message,
+    type: notification.type,
+    link: notification.link,
+    data: notification.additionalData || {},
+  };
+  io.to(`user:${notification.userId}`).emit('notification_received', notificationData);
 };

@@ -32,9 +32,6 @@ export async function GET(request: NextRequest) {
     const [notes, total] = await Promise.all([
       prisma.note.findMany({
         where,
-        include: {
-          content: { select: { id: true, title: true } },
-        },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
@@ -74,11 +71,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { content, contentId, tag } = body;
+    const { title, content, contentId, tags = [] } = body;
 
-    if (!content) {
+    if (!content || !title) {
       return NextResponse.json(
-        { error: 'Content is required' },
+        { error: 'Title and content are required' },
         { status: 400 }
       );
     }
@@ -95,13 +92,11 @@ export async function POST(request: NextRequest) {
 
     const note = await prisma.note.create({
       data: {
+        title,
         content,
         userId: user.id,
         contentId: contentId || null,
-        tag: tag || '',
-      },
-      include: {
-        content: { select: { id: true, title: true } },
+        tags: Array.isArray(tags) ? tags : tags ? [tags] : [],
       },
     });
 

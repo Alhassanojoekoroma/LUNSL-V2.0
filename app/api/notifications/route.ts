@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
       data: {
         userId,
         message,
+        title: message,
         type: type as any,
-        relatedId,
       },
     });
 
@@ -100,7 +100,7 @@ export async function PATCH(request: NextRequest) {
 
     const notification = await prisma.notification.update({
       where: { id: notificationId },
-      data: { read },
+      data: { isRead: read },
     });
 
     return NextResponse.json(notification);

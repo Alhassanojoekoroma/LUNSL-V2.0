@@ -24,19 +24,13 @@ export async function GET(request: NextRequest) {
     // Get user's certificates
     const certificates = await prisma.certificate.findMany({
       where: { userId },
-      include: {
-        course: { select: { id: true, title: true } },
-      },
-      orderBy: { awardedAt: 'desc' },
+      orderBy: { issueDate: 'desc' },
     });
 
     // Get user's progress records
     const progress = await prisma.progressRecord.findMany({
       where: { userId },
-      include: {
-        content: { select: { id: true, title: true, type: true } },
-      },
-      orderBy: { completedAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
     });
 
     // Get user's enrollment info
@@ -45,7 +39,7 @@ export async function GET(request: NextRequest) {
       include: {
         course: { select: { id: true, title: true } },
       },
-      orderBy: { enrolledAt: 'desc' },
+      orderBy: { enrollmentDate: 'desc' },
     });
 
     // Calculate overall stats
@@ -63,10 +57,12 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json({
-      certificates,
-      progress,
-      enrollments,
-      stats,
+      data: {
+        certificates,
+        progress,
+        enrollments,
+        stats,
+      },
     });
   } catch (error) {
     console.error('[Progress GET]', error);
@@ -80,7 +76,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (session?.user?.role !== 'ADMIN' && session?.user?.role !== 'LECTURER') {
+    const userRole = await prisma.user.findUnique({
+      where: { email: session?.user?.email || '' },
+      select: { role: true },
+    });
+
+    if (userRole?.role !== 'ADMIN' && userRole?.role !== 'LECTURER') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -124,11 +125,9 @@ export async function POST(request: NextRequest) {
         data: {
           userId,
           courseId,
+          title: `Course Completion Certificate`,
           certificateNumber: `CERT-${Date.now()}-${userId.slice(0, 4)}`.toUpperCase(),
-          awardedAt: new Date(),
-        },
-        include: {
-          course: { select: { id: true, title: true } },
+          issueDate: new Date(),
         },
       });
 
@@ -142,7 +141,7 @@ export async function POST(request: NextRequest) {
         },
         data: {
           status: 'COMPLETED',
-          completedAt: new Date(),
+          completionDate: new Date(),
           progressPercentage: 100,
         },
       });
@@ -175,9 +174,23 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Get the enrollment first
+      const enrollment = await prisma.courseEnrollment.findFirst({
+        where: { userId },
+        orderBy: { enrollmentDate: 'desc' },
+      });
+
+      if (!enrollment) {
+        return NextResponse.json(
+          { error: 'No active enrollment found' },
+          { status: 400 }
+        );
+      }
+
       const progressRecord = await prisma.progressRecord.create({
         data: {
           userId,
+          enrollmentId: enrollment.id,
           contentId,
           status: 'COMPLETED',
           completedAt: new Date(),

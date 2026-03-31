@@ -65,11 +65,14 @@ export async function POST(req: NextRequest) {
           topic,
           aiProvider: provider || aiService.getPreferredProvider(),
         },
+        include: {
+          messages: true,
+        },
       });
     }
 
     // Get previous messages for context
-    const previousMessages = chatHistory.messages.map((msg) => ({
+    const previousMessages = chatHistory.messages.map((msg: any) => ({
       role: msg.role as "user" | "assistant",
       content: msg.content,
     }));

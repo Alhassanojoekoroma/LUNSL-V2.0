@@ -11,9 +11,11 @@ export async function GET(
     const group = await prisma.studyGroup.findUnique({
       where: { id: params.groupId },
       include: {
-        course: { select: { id: true, title: true } },
-        members: { select: { id: true, name: true, email: true, image: true } },
-        createdBy: { select: { id: true, name: true, email: true } },
+        members: {
+          include: {
+            user: { select: { id: true, name: true, email: true, image: true } },
+          },
+        },
         _count: { select: { members: true } },
       },
     });
@@ -71,7 +73,7 @@ export async function POST(
     }
 
     if (action === 'join') {
-      if (group._count.members >= group.maxMembers) {
+      if (group.maxMembers && group._count.members >= group.maxMembers) {
         return NextResponse.json(
           { error: 'Group is full' },
           { status: 400 }

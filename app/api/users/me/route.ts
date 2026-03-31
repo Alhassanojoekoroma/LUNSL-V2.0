@@ -7,7 +7,28 @@ import { prisma } from "@/lib/prisma";
 // Get current user profile
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    let session = await getServerSession(authOptions);
+    
+    // Development mode: fallback to mock user if no session
+    if (!session?.user?.email && process.env.NODE_ENV === 'development') {
+      console.log('[Auth] Development mode: Returning mock user data');
+      return NextResponse.json({
+        data: {
+          id: 'dev-user-123',
+          email: 'test@example.com',
+          name: 'Demo Student',
+          image: null,
+          role: 'STUDENT',
+          subscriptionTier: 'FREE',
+          totalTokensEarned: 500,
+          enrollments: [],
+          badges: [],
+          certificates: [],
+          profile: null,
+        },
+      });
+    }
+
     if (!session?.user?.email) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -36,7 +57,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(user);
+    return NextResponse.json({ data: user });
   } catch (error) {
     console.error("Get user error:", error);
     return NextResponse.json(
@@ -95,7 +116,7 @@ export async function PUT(req: NextRequest) {
       include: { profile: true },
     });
 
-    return NextResponse.json(user);
+    return NextResponse.json({ data: user });
   } catch (error) {
     console.error("Update user error:", error);
     return NextResponse.json(

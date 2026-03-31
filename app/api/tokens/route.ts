@@ -5,36 +5,37 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    let session = await getServerSession(authOptions);
+    
+    // Development mode: fallback to demo user if no session
+    if (!session?.user?.email && process.env.NODE_ENV === 'development') {
+      console.log('[Tokens] Development mode: Returning mock token balance');
+      return NextResponse.json({
+        data: {
+          userId: 'dev-user-123',
+          balance: 500,
+        },
+      });
+    }
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
-      include: {
-        _count: { select: { tokenTransactions: true } },
-      },
+      select: { id: true, totalTokensEarned: true },
     });
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get token balance
-    const transactions = await prisma.tokenTransaction.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
-
-    const balance = transactions.reduce((sum, t) => sum + t.amount, 0);
-
     return NextResponse.json({
-      userId: user.id,
-      balance,
-      totalTransactions: user._count.tokenTransactions,
-      recentTransactions: transactions,
+      data: {
+        userId: user.id,
+        balance: user.totalTokensEarned,
+      },
     });
   } catch (error) {
     console.error('[Tokens GET]', error);
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userId, amount, type, description, relatedId } = body;
+    const { userId, amount, type, description = '' } = body;
 
     if (!userId || amount === undefined || !type) {
       return NextResponse.json(
@@ -77,26 +78,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const transaction = await prisma.tokenTransaction.create({
+    // Update user's token balance
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
       data: {
-        userId,
-        amount,
-        type,
-        description: description || '',
-        relatedId: relatedId || null,
+        totalTokensEarned: { increment: amount },
       },
+      select: { id: true, totalTokensEarned: true },
     });
-
-    // Get updated balance
-    const allTransactions = await prisma.tokenTransaction.findMany({
-      where: { userId },
-    });
-
-    const newBalance = allTransactions.reduce((sum, t) => sum + t.amount, 0);
 
     return NextResponse.json({
-      transaction,
-      newBalance,
+      userId: updatedUser.id,
+      newBalance: updatedUser.totalTokensEarned,
+      amount,
+      type,
+      description,
     }, { status: 201 });
   } catch (error) {
     console.error('[Tokens POST]', error);

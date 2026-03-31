@@ -45,7 +45,7 @@ export interface Content {
   semester: number
   program: string
   module: string
-  module_id?: string
+  module_id: string // Now required - maps to course ID
   module_code?: string
   content_type: ContentType
   lecturer_name: string

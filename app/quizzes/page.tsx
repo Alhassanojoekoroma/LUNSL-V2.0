@@ -1,11 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { AppShell } from '@/components/layout/app-shell'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Progress } from '@/components/ui/progress'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -19,9 +21,33 @@ import {
   Zap,
   ChevronRight,
   Play,
+  Loader2,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
-import { formatDistanceToNow } from 'date-fns'
+import { enrollmentAPI } from '@/lib/api-client'
+import { format, isPast } from 'date-fns'
+
+interface Quiz {
+  id: string
+  title: string
+  description?: string
+  course_id: string
+  duration_minutes: number
+  total_questions: number
+  passing_score: number
+  created_at: string
+  updated_at: string
+}
+
+interface QuizAttempt {
+  id: string
+  quiz_id: string
+  score?: number
+  percentage?: number
+  status: 'completed' | 'pending' | 'in_progress'
+  started_at?: string
+  completed_at?: string
+}
 
 export default function QuizzesPage() {
   const { user } = useAuthStore()

@@ -84,18 +84,18 @@ export default function LecturerDashboardPage() {
           </Button>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Stats Grid - Responsive mobile design */}
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <Card key={stat.label} style={{ boxShadow: 'none' }}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
-                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.label}</p>
+                    <p className="text-lg sm:text-2xl font-bold text-foreground">{stat.value}</p>
                   </div>
-                  <div className={`w-10 h-10 rounded-lg bg-muted flex items-center justify-center ${stat.color}`}>
-                    <stat.icon className="w-5 h-5" />
+                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 ${stat.color}`}>
+                    <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                 </div>
               </CardContent>

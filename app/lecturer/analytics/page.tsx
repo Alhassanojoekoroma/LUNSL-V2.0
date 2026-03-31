@@ -74,17 +74,17 @@ export default function LecturerAnalyticsPage() {
   return (
     <AppShell title="Analytics">
       <div className="space-y-6">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Stats Grid - Optimized for mobile with 2-column layout */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           {stats.map((stat) => (
             <Card key={stat.label}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
-                    <p className="text-2xl font-bold text-foreground mt-1">{stat.value}</p>
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.label}</p>
+                    <p className="text-lg sm:text-2xl font-bold text-foreground mt-1">{stat.value}</p>
                   </div>
-                  <div className={`w-10 h-10 rounded-lg bg-muted flex items-center justify-center ${stat.color}`}>
+                  <div className={`w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 ${stat.color}`}>
                     <stat.icon className="w-5 h-5" />
                   </div>
                 </div>

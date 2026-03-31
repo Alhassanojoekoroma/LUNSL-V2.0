@@ -15,7 +15,7 @@ export async function GET(
 
     const [posts, total] = await Promise.all([
       prisma.forumPost.findMany({
-        where: { courseId },
+        where: { category: courseId },
         include: {
           author: { select: { id: true, name: true, email: true, image: true } },
           _count: { select: { comments: true } },
@@ -24,7 +24,7 @@ export async function GET(
         skip,
         take: limit,
       }),
-      prisma.forumPost.count({ where: { courseId } }),
+      prisma.forumPost.count({ where: { category: courseId } }),
     ]);
 
     return NextResponse.json({
@@ -57,7 +57,7 @@ export async function POST(
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
-      select: { id: true },
+      select: { id: true, role: true },
     });
 
     if (!user) {
@@ -84,7 +84,7 @@ export async function POST(
       },
     });
 
-    if (!enrollment && session.user.role !== 'ADMIN') {
+    if (!enrollment && user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'You must be enrolled in this course' },
         { status: 403 }
@@ -95,7 +95,7 @@ export async function POST(
       data: {
         title,
         content,
-        courseId: params.courseId,
+        category: params.courseId, // Store courseId in category field
         authorId: user.id,
       },
       include: {

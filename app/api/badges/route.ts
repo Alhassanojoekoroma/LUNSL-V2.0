@@ -36,12 +36,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (session?.user?.role !== 'ADMIN') {
+    if (!session?.user?.role || (session.user.role !== 'ADMIN' && session.user.role !== 'LECTURER')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
-    const { userId, badgeName, description, icon } = body;
+    const { userId, badgeName, description, icon, color } = body;
 
     if (!userId || !badgeName) {
       return NextResponse.json(
@@ -56,11 +56,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Find or create badge
+    let badge = await prisma.badge.findUnique({
+      where: { name: badgeName },
+    });
+
+    if (!badge) {
+      badge = await prisma.badge.create({
+        data: {
+          name: badgeName,
+          description: description || '',
+          icon: icon || '🏆',
+          color: color || '#FFD700',
+        },
+      });
+    }
+
     // Check if user already has this badge
-    const existingBadge = await prisma.userBadge.findFirst({
+    const existingBadge = await prisma.userBadge.findUnique({
       where: {
-        userId,
-        badgeName,
+        userId_badgeId: {
+          userId,
+          badgeId: badge.id,
+        },
       },
     });
 
@@ -71,17 +89,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const badge = await prisma.userBadge.create({
+    const userBadge = await prisma.userBadge.create({
       data: {
         userId,
-        badgeName,
-        description: description || '',
-        icon: icon || '🏆',
-        earnedAt: new Date(),
+        badgeId: badge.id,
       },
+      include: { badge: true },
     });
 
-    return NextResponse.json(badge, { status: 201 });
+    return NextResponse.json(userBadge, { status: 201 });
   } catch (error) {
     console.error('[Badges POST]', error);
     return NextResponse.json(

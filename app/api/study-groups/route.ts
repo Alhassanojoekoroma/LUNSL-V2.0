@@ -21,32 +21,30 @@ export async function GET(request: NextRequest) {
 
     const page = parseInt(request.nextUrl.searchParams.get('page') || '1');
     const limit = parseInt(request.nextUrl.searchParams.get('limit') || '20');
-    const courseId = request.nextUrl.searchParams.get('courseId');
 
     const skip = (page - 1) * limit;
 
-    const where: any = {
-      members: {
-        some: { id: user.id },
-      },
-    };
-
-    if (courseId) {
-      where.courseId = courseId;
-    }
-
     const [groups, total] = await Promise.all([
       prisma.studyGroup.findMany({
-        where,
+        where: {
+          members: {
+            some: { userId: user.id },
+          },
+        },
         include: {
-          course: { select: { id: true, title: true } },
           _count: { select: { members: true } },
         },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
       }),
-      prisma.studyGroup.count({ where }),
+      prisma.studyGroup.count({
+        where: {
+          members: {
+            some: { userId: user.id },
+          },
+        },
+      }),
     ]);
 
     return NextResponse.json({
@@ -84,39 +82,40 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, courseId, maxMembers } = body;
+    const { name, description, maxMembers = 10 } = body;
 
-    if (!name || !courseId) {
+    if (!name) {
       return NextResponse.json(
-        { error: 'Name and courseId are required' },
+        { error: 'Name is required' },
         { status: 400 }
       );
-    }
-
-    // Verify course exists
-    const course = await prisma.course.findUnique({ where: { id: courseId } });
-    if (!course) {
-      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
     const group = await prisma.studyGroup.create({
       data: {
         name,
         description: description || '',
-        courseId,
-        createdById: user.id,
-        maxMembers: maxMembers || 10,
-        members: {
-          connect: { id: user.id },
-        },
+        maxMembers,
       },
+    });
+
+    // Add creator as member
+    await prisma.studyGroupMember.create({
+      data: {
+        groupId: group.id,
+        userId: user.id,
+        role: 'admin',
+      },
+    });
+
+    const groupWithMembers = await prisma.studyGroup.findUnique({
+      where: { id: group.id },
       include: {
-        course: { select: { id: true, title: true } },
         _count: { select: { members: true } },
       },
     });
 
-    return NextResponse.json(group, { status: 201 });
+    return NextResponse.json(groupWithMembers, { status: 201 });
   } catch (error) {
     console.error('[Study Groups POST]', error);
     return NextResponse.json(
