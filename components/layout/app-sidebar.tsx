@@ -29,6 +29,27 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import { STUDENT_NAV_ITEMS, LECTURER_NAV_ITEMS, ADMIN_NAV_ITEMS } from '@/lib/constants'
+import { CustomIcon, ICON_NAMES } from '@/components/custom-icon'
+
+// Map of navigation icon names to custom icon files
+// If a custom icon exists, it will be used; otherwise falls back to Lucide
+const customIconMap: Record<string, string | null> = {
+  LayoutDashboard: 'Dashboard Icon',
+  Search: 'Search icon',
+  Bot: 'AI bot icon ',
+  Calendar: 'Schedule icon ',
+  CheckSquare: null, // Use Lucide fallback
+  MessageSquare: 'Notification Icon',
+  TrendingUp: 'My Progress icon',
+  Coins: null, // Use Lucide fallback
+  Users: null, // Use Lucide fallback
+  Settings: 'Setting icon',
+  Upload: null, // Use Lucide fallback
+  FolderOpen: null, // Use Lucide fallback
+  BarChart: null, // Use Lucide fallback
+  Send: null, // Use Lucide fallback
+  FileText: null, // Use Lucide fallback
+}
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
@@ -116,7 +137,9 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
           <ScrollArea className="flex-1 p-4">
             <nav className="space-y-1">
               {navItems.map((item) => {
-                const Icon = iconMap[item.icon] || LayoutDashboard
+                const lucideIcon = item.icon as keyof typeof iconMap
+                const Icon = iconMap[lucideIcon] || LayoutDashboard
+                const customIconName = customIconMap[lucideIcon]
                 const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                 
                 return (
@@ -133,7 +156,11 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                         : "text-sidebar-foreground hover:bg-sidebar-accent"
                     )}
                   >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {customIconName ? (
+                      <CustomIcon name={customIconName} size={20} className="flex-shrink-0" />
+                    ) : (
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                    )}
                     <span>{item.label}</span>
                   </Link>
                 )
@@ -166,7 +193,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
               className="w-full justify-start text-muted-foreground hover:text-destructive hover:border-destructive"
               onClick={handleLogout}
             >
-              <LogOut className="w-4 h-4 mr-2" />
+              <CustomIcon name="Log out" size={16} className="mr-2" />
               Sign Out
             </Button>
           </div>
